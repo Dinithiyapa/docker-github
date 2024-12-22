@@ -65,12 +65,12 @@ jobs:
 
       # Step 2: Clone the repository on the server
       - name: Clone the repository
-        run: git clone https://github.com/Dinithiyapa/docker-github.git || true
+        run: git@github.com:Dinithiyapa/docker-github.git
 
       # Step 3: Navigate into the repository and remove any running Docker Compose components
       - name: Stop existing Docker Compose components
-        run: cd devops-challenge-apps && docker compose down || true
+        run: cd docker-github && docker compose down || true
 
       # Step 4: Start the application using Docker Compose
       - name: Start Docker Compose
-        run: cd devops-challenge-apps && docker compose up -d
+        run: cd docker-github && docker compose up -d
