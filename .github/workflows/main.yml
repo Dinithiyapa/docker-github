@@ -71,7 +71,7 @@ jobs:
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          passwor: ${{ secrets.EC2_SSH_KEY }}
           port: 22
       
       - name: Cloning the repository
