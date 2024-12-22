@@ -69,13 +69,12 @@ jobs:
       - name: Executing remote ssh commands using ssh key
         uses: easingthemes/ssh-deploy@main
         with:
-          user: ec2-user                # Your server username, typically 'ec2-user' for Amazon Linux
-          host: 13.53.39.122
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: './docker-github/'    # Local path to the files to be deployed
-          target: '/home/ec2-user/app'  # Remote path on the server
-          rsync-options: '-avz --delete'
+          REMOTE_HOST: ${{ secrets.HOST_DNS }}
+          REMOTE_USER: ${{ secrets.USERNAME }}
+          REMOTE_PORT: 22
+          SOURCE: './docker-github/'  # Local path to the files to be deployed
+          TARGET: '/home/ec2-user/app/'  # Target directory on the server
 
       - name: Executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
