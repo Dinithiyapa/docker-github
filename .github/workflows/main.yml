@@ -40,10 +40,19 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
+          # Run setup.sh to install Docker and Docker Compose if not already installed
+          if [ ! -f ~/setup.sh ]; then
+            echo "setup.sh not found, skipping EC2 setup."
+          else
+            bash ~/setup.sh
+          fi
+          
           # Stop existing containers
           docker-compose down || true
+          
           # Pull latest images
           docker pull $DOCKER_IMAGE_API:latest
           docker pull $DOCKER_IMAGE_WEB:latest
+          
           # Restart application
           docker-compose up -d
