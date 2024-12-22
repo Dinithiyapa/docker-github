@@ -1,73 +1,76 @@
-name: CI/CD Pipeline
+name: CI/CD Workflow
 
 on:
   push:
     branches:
-      - main
+      - github-actions # Workflow triggers on pushes to this branch
 
 jobs:
-  build-and-deploy:
+  build-api:
     runs-on: ubuntu-latest
-
-    env:
-      DOCKER_IMAGE_API: yapadinithi/api
-      DOCKER_IMAGE_WEB: yapadinithi/web
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      # Step 1: Checkout the code from the repository
+      - name: Checkout the code
+        uses: actions/checkout@v4
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      # Step 2: Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD}}
 
-    - name: Build API Docker Image
-      run: |
-        docker build -t $DOCKER_IMAGE_API:latest ./api
-        docker push $DOCKER_IMAGE_API:latest
+      # Step 3: Build and push the Docker image for API
+      - name: Build and push API Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          push: true
+          tags: ${{ vars.DOCKER_USERNAME }}/github-actions-api:latest,${{ vars.DOCKER_USERNAME }}/github-actions-api:${{ github.run_number }}
 
-    - name: Build Web Docker Image
-      run: |
-        docker build -t $DOCKER_IMAGE_WEB:latest ./web
-        docker push $DOCKER_IMAGE_WEB:latest
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout the code
+        uses: actions/checkout@v4
 
-    - name: Copy files to target server via SCP
-      uses: appleboy/scp-action@v0.1.3
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USERNAME }}
-        port: 22
-        key: ${{ secrets.DEPLOY_KEY }}
-        source: "./docker-compose.yml,./nginx.conf,./.env"
-        target: "~/.deploy/${{ github.event.repository.name }}/"
+      # Step 2: Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSOWORD }}
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USERNAME }}
-        key: ${{ secrets.DEPLOY_KEY }}
-        script: |
-          # Ensure Docker and Docker Compose are installed on the EC2 instance
-          if [ ! -f ~/setup.sh ]; then
-            echo "setup.sh not found, skipping EC2 setup."
-          else
-            bash ~/setup.sh
-          fi
-          
-          # Stop existing containers
-          docker-compose down || true
-          
-          # Pull the latest images
-          docker pull $DOCKER_IMAGE_API:latest
-          docker pull $DOCKER_IMAGE_WEB:latest
-          docker pull postgres:9.6  # Pull PostgreSQL image
-          docker pull nginx:alpine  # Pull Nginx image
-          
-          # Navigate to the project directory where docker-compose.yml is located
-          cd ~/.deploy/${{ github.event.repository.name }}
-          
-          # Start all services defined in docker-compose.yml
-          docker-compose up -d
+      # Step 3: Build and push the Docker image for Web
+      - name: Build and push Web Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          push: true
+          tags: ${{ vars.DOCKER_USERNAME }}/github-actions-web:latest,${{ vars.DOCKER_USERNAME }}/github-actions-web:${{ github.run_number }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-web, build-api] # Waits for both build-web and build-api to finish
+    steps:
+      # Step 1: Connect to the remote VM using SSH
+      - name: SSH into the server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.EC2_HOST }}
+          username: ${{ vars.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+
+      # Step 2: Clone the repository on the server
+      - name: Clone the repository
+        run: git clone https://github.com/Dinithiyapa/docker-github.git || true
+
+      # Step 3: Navigate into the repository and remove any running Docker Compose components
+      - name: Stop existing Docker Compose components
+        run: cd devops-challenge-apps && docker compose down || true
+
+      # Step 4: Start the application using Docker Compose
+      - name: Start Docker Compose
+        run: cd devops-challenge-apps && docker compose up -d
