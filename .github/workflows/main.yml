@@ -33,21 +33,22 @@ jobs:
         docker build -t $DOCKER_IMAGE_WEB:latest ./web
         docker push $DOCKER_IMAGE_WEB:latest
 
-    - name: Transfer files to EC2
-      run: |
-        # Save the private key from GitHub Secrets to a temporary file
-        echo "${{ secrets.EC2_KEY }}" > /tmp/ec2_key.pem
-        chmod 600 /tmp/ec2_key.pem  # Ensure the private key has correct permissions
-
-        # Use SCP to transfer the necessary files to the EC2 instance
-        scp -i /tmp/ec2_key.pem -r ./docker-compose.yml ./nginx.conf ubuntu@13.53.39.122:/home/ubuntu/Buz_bud/
+    - name: Copy files to target server via SCP
+      uses: appleboy/scp-action@v0.1.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USERNAME }}
+        port: 22
+        key: ${{ secrets.DEPLOY_KEY }}
+        source: "./docker-compose.yml,./nginx.conf,./.env"
+        target: "~/.deploy/${{ github.event.repository.name }}/"
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: 13.53.39.122
-        username: ubuntu
-        key: /tmp/ec2_key.pem
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USERNAME }}
+        key: ${{ secrets.DEPLOY_KEY }}
         script: |
           # Ensure Docker and Docker Compose are installed on the EC2 instance
           if [ ! -f ~/setup.sh ]; then
@@ -66,7 +67,7 @@ jobs:
           docker pull nginx:alpine  # Pull Nginx image
           
           # Navigate to the project directory where docker-compose.yml is located
-          cd ~/Buz_bud
+          cd ~/.deploy/${{ github.event.repository.name }}
           
           # Start all services defined in docker-compose.yml
           docker-compose up -d
