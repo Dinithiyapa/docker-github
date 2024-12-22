@@ -3,7 +3,7 @@ name: CI/CD Workflow
 on:
   push:
     branches:
-      - github-actions # Workflow triggers on pushes to this branch
+      - main # Workflow triggers on pushes to this branch
 
 jobs:
   build-api:
