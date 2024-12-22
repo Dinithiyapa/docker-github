@@ -35,14 +35,19 @@ jobs:
 
     - name: Transfer files to EC2
       run: |
-        scp -i ${{ secrets.EC2_KEY }} -r ./docker-compose.yml ./nginx.conf ubuntu@13.53.39.122:/home/ubuntu/Buz_bud/
+        # Save the private key from GitHub Secrets to a temporary file
+        echo "${{ secrets.EC2_KEY }}" > /tmp/ec2_key.pem
+        chmod 600 /tmp/ec2_key.pem  # Ensure the private key has correct permissions
+
+        # Use SCP to transfer the necessary files to the EC2 instance
+        scp -i /tmp/ec2_key.pem -r ./docker-compose.yml ./nginx.conf ubuntu@13.53.39.122:/home/ubuntu/Buz_bud/
 
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
         host: 13.53.39.122
         username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
+        key: /tmp/ec2_key.pem
         script: |
           # Ensure Docker and Docker Compose are installed on the EC2 instance
           if [ ! -f ~/setup.sh ]; then
