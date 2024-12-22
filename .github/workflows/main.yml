@@ -33,6 +33,10 @@ jobs:
         docker build -t $DOCKER_IMAGE_WEB:latest ./web
         docker push $DOCKER_IMAGE_WEB:latest
 
+    - name: Transfer files to EC2
+      run: |
+        scp -i ${{ secrets.EC2_KEY }} -r ./docker-compose.yml ./nginx.conf ubuntu@13.53.39.122:/home/ubuntu/Buz_bud/
+
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -40,7 +44,7 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
-          # Run setup.sh to install Docker and Docker Compose if not already installed
+          # Ensure Docker and Docker Compose are installed on the EC2 instance
           if [ ! -f ~/setup.sh ]; then
             echo "setup.sh not found, skipping EC2 setup."
           else
@@ -50,9 +54,14 @@ jobs:
           # Stop existing containers
           docker-compose down || true
           
-          # Pull latest images
+          # Pull the latest images
           docker pull $DOCKER_IMAGE_API:latest
           docker pull $DOCKER_IMAGE_WEB:latest
+          docker pull postgres:9.6  # Pull PostgreSQL image
+          docker pull nginx:alpine  # Pull Nginx image
           
-          # Restart application
+          # Navigate to the project directory where docker-compose.yml is located
+          cd ~/Buz_bud
+          
+          # Start all services defined in docker-compose.yml
           docker-compose up -d
