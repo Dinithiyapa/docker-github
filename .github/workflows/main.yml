@@ -68,11 +68,14 @@ jobs:
       #Establishing connection to VM via ssh
       - name: Executing remote ssh commands using ssh key
         uses: easingthemes/ssh-deploy@main
-        env:
+        with:
+          user: ec2-user                # Your server username, typically 'ec2-user' for Amazon Linux
+          host: 13.53.39.122
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
+          port: 22
+          source: './docker-github/'    # Local path to the files to be deployed
+          target: '/home/ec2-user/app'  # Remote path on the server
+          rsync-options: '-avz --delete'
 
       - name: Executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
