@@ -76,15 +76,15 @@ jobs:
           port: ${{ secrets.EC2_PORT }}
 
       - name: Cloning the repository
-        run: git@github.com/tilshansanoj/devops-challenge-apps.git
+        run: git@github.com:Dinithiyapa/docker-github.git
           
-        #run: git clone https://github.com/tilshansanoj/devops-challenge-apps.git 
+        #run: git clone https://github.com/Dinithiyapa/docker-github.git 
 
       - name: Removing ongoing docker compose components
-        run: cd devops-challenge-apps && docker compose down
+        run: cd docker-github && docker compose down
         
       - name: Running the docker compose
-        run: cd devops-challenge-apps && docker compose up -d
+        run: docker-github && docker compose up -d
 
           # script: |
           #   git clone https://github.com/tilshansanoj/devops-challenge-apps.git 
