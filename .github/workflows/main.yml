@@ -65,25 +65,24 @@ jobs:
 
     steps:
 
-      #Establishing connection to VM via ssh
-      - name: Executing remote ssh commands using ssh key
-        uses: easingthemes/ssh-deploy@main
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          REMOTE_PORT: 22
-          SOURCE: './docker-github/'  # Local path to the files to be deployed
-          TARGET: '/home/ec2-user/app/'  # Target directory on the server
-
+      
       - name: Executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            git clone https://github.com/Dinithiyapa/docker-github.git 
-            cd docker-github
-            docker compose down && docker compose up -d
+          port: 22
+      
+      - name: Cloning the repository
+        run: git@github.com/tilshansanoj/devops-challenge-apps.git
+          
+        #run: git clone https://github.com/Dinithiyapa/docker-github.git
+
+      - name: Removing ongoing docker compose components
+        run: cd docker-github && docker compose down
+        
+      - name: Running the docker compose
+        run: cd docker-github && docker compose up -d
+          
 
