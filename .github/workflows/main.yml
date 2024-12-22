@@ -57,4 +57,31 @@ jobs:
           context: ./api  # Path to the API's Dockerfile
           push: true
           tags: yapadinithi/buzbud-api-action:${{ github.run_number }}-${{ github.run_attempt }}  # Use run number and attempt number for tagging
+    #Deployment stage using the previously built web and api images
+  deploy:
+    runs-on: ubuntu-latest
+
+    needs: [build-web, build-api] # will start the deploy job once both build-web and build-api jobs are done
+
+    steps:
+
+      #Establishing connection to VM via ssh
+      - name: Executing remote ssh commands using ssh key
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.HOST_DNS }}
+          REMOTE_USER: ${{ secrets.USERNAME }}
+          TARGET: ${{ secrets.TARGET_DIR }}
+
+      - name: Executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            git clone https://github.com/Dinithiyapa/docker-github.git 
+            cd docker-github
+            docker compose down && docker compose up -d
 
